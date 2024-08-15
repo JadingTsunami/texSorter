@@ -2,6 +2,8 @@
 
 Doom TEXTURE Lump Sorting Tool
 
+Requires: pillow, tkinter, omgifol, webcolors
+
 1. Click "Load" and open your WAD. Textures will be listed on the left.
 2. Select a texture from the listbox.
 3. Select a category.
