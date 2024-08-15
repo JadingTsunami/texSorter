@@ -4,6 +4,7 @@ from omg import playpal
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 import json
 import webcolors
 from PIL import Image, ImageDraw, ImageTk
@@ -14,6 +15,7 @@ tex = None
 texname = None
 img = None
 howmany = {}
+modified = False
 
 # Adapted from:
 # https://stackoverflow.com/questions/9694165/convert-rgb-color-to-english-color-name-like-green-with-python
@@ -145,10 +147,12 @@ def load_wad():
 
 def save_wad():
     global wad
+    global modified
     file_path = filedialog.asksaveasfilename(title="Save to a WAD file", filetypes=[("WAD files", "*.wad")])
     if file_path and wad:
         wad.txdefs = tex.to_lumps()
         wad.to_file(file_path)
+        modified = False
 
 def create_gui(data):
     global listbox
@@ -156,6 +160,11 @@ def create_gui(data):
     root = tk.Tk()
     root.title("Texture Sorter")
     root.geometry('1024x700')
+
+    def check_exit():
+        global modified
+        if (modified and messagebox.askyesno("Unsaved Changes", "There are unsaved changes. Do you want to quit?")) or not modified:
+            root.quit()
 
     # Scrollable list
     list_frame = tk.Frame(root)
@@ -181,7 +190,7 @@ def create_gui(data):
     load_button.pack(side=tk.LEFT)
     save_button = tk.Button(button_frame, text="Save", command=save_wad)
     save_button.pack(side=tk.LEFT)
-    exit_button = tk.Button(button_frame, text="Exit", command=root.quit)
+    exit_button = tk.Button(button_frame, text="Exit", command=check_exit)
     exit_button.pack(side=tk.LEFT)
 
     # texture buttons
@@ -249,24 +258,28 @@ def create_gui(data):
             # FIXME: Multi-patch and offsets support
             tx = tex[selected_item]
             patch = tx.patches[0]
-            image = wad.patches[patch.name].to_Image(mode='RGBA')
-            image = image.resize((tx.width * 2, tx.height * 2))
-            if checkbox_var.get():
-                color = average_image_color(image)
-                color_name = get_color_name(color, data['AutoColors'])
-                if color_name in dropdown2_values.keys():
-                    select_listbox_item(dropdown2, color_name)
-                else:
-                    select_listbox_item(dropdown2, 'mixed')
-                    
-            #tex_label.config(text=f"{int(color[0]):02x}:{int(color[1]):02x}:{int(color[2]):02x} -- {generate_texture_name()}")
-            set_texture()
-            photo = ImageTk.PhotoImage(image)
-            image_label.config(image=photo)
-            image_label.image = photo
+            if patch.name in wad.patches:
+                image = wad.patches[patch.name].to_Image(mode='RGBA')
+                image = image.resize((tx.width * 2, tx.height * 2))
+                if checkbox_var.get():
+                    color = average_image_color(image)
+                    color_name = get_color_name(color, data['AutoColors'])
+                    if color_name in dropdown2_values.keys():
+                        select_listbox_item(dropdown2, color_name)
+                    else:
+                        select_listbox_item(dropdown2, 'mixed')
+                        
+                #tex_label.config(text=f"{int(color[0]):02x}:{int(color[1]):02x}:{int(color[2]):02x} -- {generate_texture_name()}")
+                set_texture()
+                photo = ImageTk.PhotoImage(image)
+                image_label.config(image=photo)
+                image_label.image = photo
+            else:
+                image_label.config(image="", text="Not found")
 
     def rename_texture():
         global listbox
+        global modified
         prefix = data['Prefix']
 
         selected_indices = listbox.curselection()
@@ -287,6 +300,7 @@ def create_gui(data):
             # update the WAD texture name
             tex.rename(old_name, new_name)
             tex[new_name].name = new_name
+            modified = True
 
         listbox.selection_clear(0, tk.END)
         listbox.selection_set(min(selected_indices[-1]+1,listbox.size()))
