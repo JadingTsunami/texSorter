@@ -17,8 +17,14 @@ The tool will auto-match dominant colors against the colors in the `AutoColors` 
 
 ![example](assets/texsorter.png)
 
+# remapper.py
+
+Tool to remap textures. Useful if you already made a map with the old texture names and want to convert it as-is to the new texture names.
+
+
 # TODO/Stuff that doesn't work
 
 - Multi-patch textures
 - Overwriting already-sorted textures
 - Textures &gt;99 in a single category (need to proceed 99, A0, A1, .., B0, ..., AA, AB, .., ZZ, or something like that)
+
