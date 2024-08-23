@@ -16,6 +16,13 @@ texname = None
 img = None
 howmany = {}
 modified = False
+editmode = None
+
+def texmode():
+    return editmode.get() == "Textures"
+
+def flatmode():
+    return editmode.get() == "Flats"
 
 # Adapted from:
 # https://stackoverflow.com/questions/9694165/convert-rgb-color-to-english-color-name-like-green-with-python
@@ -137,6 +144,24 @@ def load_textures():
         listbox.insert(tk.END, item)
         register_texture(data, item)
 
+def load_flats():
+    global listbox
+    global tex
+    global wad
+    global data
+
+    reset()
+
+    if 'PLAYPAL' in wad.data:
+        playpal.Playpal.from_lump(wad, lump=wad.data['PLAYPAL'])
+        wad.palette = wad.palettes[0]
+        for p in wad.flats:
+            wad.flats[p].palette = wad.palette
+    tex = wad.flats
+    for item in tex:
+        listbox.insert(tk.END, item)
+        register_texture(data, item)
+
 def load_wad():
     global wad
     file_path = filedialog.askopenfilename(title="Choose a WAD file", filetypes=[("WAD files", "*.wad")])
@@ -150,12 +175,22 @@ def save_wad():
     global modified
     file_path = filedialog.asksaveasfilename(title="Save to a WAD file", filetypes=[("WAD files", "*.wad")])
     if file_path and wad:
-        wad.txdefs = tex.to_lumps()
+        if texmode():
+            wad.txdefs = tex.to_lumps()
+        elif flatmode():
+            wad.flats = tex.to_lumps()
         wad.to_file(file_path)
         modified = False
 
+def select_option():
+    if texmode():
+        load_textures()
+    elif flatmode():
+        load_flats()
+
 def create_gui(data):
     global listbox
+    global editmode
 
     root = tk.Tk()
     root.title("Texture Sorter")
@@ -198,6 +233,15 @@ def create_gui(data):
     button_frame2.pack(side=tk.BOTTOM)
     rename_button = tk.Button(button_frame2, text="Rename")
     rename_button.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+    
+    editmode = tk.StringVar()
+    editmode.set("Textures")
+
+    option1 = tk.Radiobutton(button_frame2, text="Flats", variable=editmode, value="Flats", command=select_option)
+    option1.pack()
+
+    option2 = tk.Radiobutton(button_frame2, text="Textures", variable=editmode, value="Textures", command=select_option)
+    option2.pack()
 
     # Dropdown menus
     dropdown_frame = tk.Frame(root)
@@ -257,25 +301,29 @@ def create_gui(data):
             selected_item = listbox.get(index[0])
             # FIXME: Multi-patch and offsets support
             tx = tex[selected_item]
-            patch = tx.patches[0]
-            if patch.name in wad.patches:
-                image = wad.patches[patch.name].to_Image(mode='RGBA')
-                image = image.resize((tx.width * 2, tx.height * 2))
-                if checkbox_var.get():
-                    color = average_image_color(image)
-                    color_name = get_color_name(color, data['AutoColors'])
-                    if color_name in dropdown2_values.keys():
-                        select_listbox_item(dropdown2, color_name)
-                    else:
-                        select_listbox_item(dropdown2, 'mixed')
-                        
-                #tex_label.config(text=f"{int(color[0]):02x}:{int(color[1]):02x}:{int(color[2]):02x} -- {generate_texture_name()}")
-                set_texture()
-                photo = ImageTk.PhotoImage(image)
-                image_label.config(image=photo)
-                image_label.image = photo
-            else:
-                image_label.config(image="", text="Not found")
+            if texmode():
+                patch = tx.patches[0]
+                if patch.name not in wad.patches:
+                    image_label.config(image="", text="Not found")
+                    return
+                else:
+                    image = wad.patches[patch.name].to_Image(mode='RGBA')
+            elif flatmode():
+                image = tx.to_Image(mode='RGBA')
+            image = image.resize((tx.width * 2, tx.height * 2))
+            if checkbox_var.get():
+                color = average_image_color(image)
+                color_name = get_color_name(color, data['AutoColors'])
+                if color_name in dropdown2_values.keys():
+                    select_listbox_item(dropdown2, color_name)
+                else:
+                    select_listbox_item(dropdown2, 'mixed')
+                    
+            #tex_label.config(text=f"{int(color[0]):02x}:{int(color[1]):02x}:{int(color[2]):02x} -- {generate_texture_name()}")
+            set_texture()
+            photo = ImageTk.PhotoImage(image)
+            image_label.config(image=photo)
+            image_label.image = photo
 
     def rename_texture():
         global listbox
@@ -299,7 +347,8 @@ def create_gui(data):
             listbox.focus_set()
             # update the WAD texture name
             tex.rename(old_name, new_name)
-            tex[new_name].name = new_name
+            if texmode():
+                tex[new_name].name = new_name
             modified = True
 
         listbox.selection_clear(0, tk.END)
