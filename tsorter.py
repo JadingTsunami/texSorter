@@ -178,7 +178,7 @@ def save_wad():
         if texmode():
             wad.txdefs = tex.to_lumps()
         elif flatmode():
-            wad.flats = tex.to_lumps()
+            pass
         wad.to_file(file_path)
         modified = False
 
