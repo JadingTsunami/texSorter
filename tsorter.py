@@ -184,8 +184,11 @@ def save_wad():
 
 def select_option():
     if texmode():
+        # flat changes are stored in the WAD already
         load_textures()
     elif flatmode():
+        # save any changes in the WAD
+        wad.txdefs = tex.to_lumps()
         load_flats()
 
 def create_gui(data):
