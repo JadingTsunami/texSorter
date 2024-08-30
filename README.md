@@ -24,7 +24,8 @@ Tool to remap textures. Useful if you already made a map with the old texture na
 
 # TODO/Stuff that doesn't work
 
-- Multi-patch textures
-- Overwriting already-sorted textures
+- Multi-patch textures not supported
+- Add TEXTURE1/2/S support (only TEXTURE1 supported right now)
+- Overwriting already-sorted textures appends to the end instead of putting in the "hole" spot
 - Textures &gt;99 in a single category (need to proceed 99, A0, A1, .., B0, ..., AA, AB, .., ZZ, or something like that)
 
